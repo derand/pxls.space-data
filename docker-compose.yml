@@ -1,0 +1,19 @@
+version: '2'
+
+services:
+  pxls_space:
+    image: "derand/secret:pxls_space-armhf"
+    build: .
+    container_name: pxls_space
+    hostname: pxls_space
+    restart: always
+    volumes:
+      - /mnt/pxls_space:/mnt
+    environment:
+      - STORE_PATH=/mnt
+      - RESTART_PERIOD=600
+    logging: &default_logging
+      driver: json-file
+      options:
+        max-size: "500k"
+        max-file: "1"
