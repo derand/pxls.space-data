@@ -32,6 +32,7 @@ import json, os
 import time
 import thread
 import gzip
+import twisted
 
 STORE_PATH = os.environ.get('STORE_PATH', '.')
 
@@ -121,7 +122,10 @@ class MyClientProtocol(WebSocketClientProtocol):
         #self.factory.connections.remove(self)
         WebSocketClientProtocol.connectionLost(self, reason)#always after your code
         if reactor.running:
-            reactor.stop()
+            try:
+                reactor.stop()
+            except twisted.internet.error.ReactorNotRunning as e:
+                pass
 
 if __name__ == '__main__':
 
@@ -130,6 +134,8 @@ if __name__ == '__main__':
     from twisted.python import log
     from twisted.internet import reactor
     from twisted.web.client import getPage
+    from twisted.web.client import Agent, CookieAgent, readBody
+    from cookielib import Cookie, CookieJar
 
     log.startLogging(sys.stdout)
 
@@ -140,17 +146,30 @@ if __name__ == '__main__':
     #dt_str = '%d%02d%02d_%02d%02d%02d-%d'%(tm.year, tm.month, tm.day, tm.hour, tm.minute, tm.second, int(time.time()))
 
     url = 'http://pxls.space/boarddata'
+    #pxls-agegate=1
 
     thread.start_new_thread(kill_by_period, ())
 
-    def save_initial(output):
+    # http://pxls.space/boarddata response
+    def cbBody(data):
         with gzip.open("%s/%s.bin"%(STORE_PATH, dt_str), "wb") as file:
-            file.write(output)
-    
-    d = getPage(url)
-    d.addCallback(save_initial)
+            file.write(data)
+    def cbRequest(response):
+        d = readBody(response)
+        d.addCallback(cbBody)
+        return d
+ 
+    cj = CookieJar()
+    c = Cookie(None, 'pxls-agegate', '1', '80', '80', 'pxls.space', 
+       None, None, '/', None, False, False, 'TestCookie', None, None, None)
+    cj.set_cookie(c)
 
-    factory = WebSocketClientFactory(u"ws://pxls.space/ws")
+    agent = CookieAgent(Agent(reactor), cj)
+    #d = agent.request('GET', url)
+    d = getPage(url, headers = {"Cookie": "pxls-agegate=1"})
+    d.addCallback(cbBody)
+
+    factory = WebSocketClientFactory(u"ws://pxls.space/ws", headers = {"Cookie": "pxls-agegate=1"})
     factory.protocol = MyClientProtocol
 
     reactor.connectTCP("pxls.space", 80, factory)
