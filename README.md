@@ -13,3 +13,5 @@ Before run scripts install dependencies from 'requirements.txt':
 Converting from png-frames to video use ffmpeg like:
 
     ffmpeg -y -framerate 60 -pattern_type glob -i "frames/*.png" -c:v libx264 -pix_fmt yuv420p -crf 18 -refs 4 -partitions +parti4x4+parti8x8+partp4x4+partp8x8+partb8x8 -subq 12 -trellis 1 -coder 1 -me_range 32 -level 4.1 -profile:v high -bf 12 timelapse.mp4
+
+Font "Data Control" downloaded from [www.1001freefonts.com](http://www.1001freefonts.com/computer-fonts.php).
