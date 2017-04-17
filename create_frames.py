@@ -1,4 +1,4 @@
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFont
 import time, pytz, datetime
 import json
 import math
@@ -25,20 +25,25 @@ color_map = (
     )
 
 # 4096x2304
-#borders = [1061, 566, 1720, 1013]
+#borders = [1061, 566, 1720, 1013] # chans
 #borders = [0, 0, 2000, 2000]
 #borders = [1550, 110, 1772, 362] # right active
-#borders = [1308, 767, 1325, 785] # 9
-borders = [1751, 24, 1821, 87]
+borders = [1308, 767, 1325, 785] # 9
+#borders = [1751, 24, 1821, 87]
 field_size = (2000, 2000)
 #out_size = (4096, 2304)
 out_size = (1280, 720)
 pxl_sz = 0
 pxl_diff = (0, 0)
 out_path = os.path.expanduser('~/Desktop/data/frames/')
-data_path = os.path.expanduser('~/Desktop/data/pxls_space_tmp/')
-tm_start = tm_stop = 0
+data_path = os.path.expanduser('~/Desktop/data/pxls_space/')
+tm_start = 0
+tm_stop = 1492041600
 tm_step = 10
+tm = tm_next_frame = tm_start
+fnt = ImageFont.truetype('Academic M54.ttf', 24)
+#fnt = ImageFont.truetype('FFF_Tusj.ttf', 24)
+
 '''
     ffmpeg -y -framerate 60 -pattern_type glob -i "/Users/maliy/Desktop/data/frames/*.png" -c:v libx264 -pix_fmt yuv420p -crf 18 -refs 4 -partitions +parti4x4+parti8x8+partp4x4+partp8x8+partb8x8 -subq 12 -trellis 1 -coder 1 -me_range 32 -level 4.1 -profile:v high -bf 12 /Users/maliy/Desktop/out.mp4
 '''
@@ -108,6 +113,11 @@ def clear_files(files, tm_start, tm_stop):
         if tm > tm_start:
             break
         files = files[1:]
+    while len(files) > 1:
+        tm = file_time(files[-1])
+        if tm < tm_stop:
+            break
+        files = files[:-1]
     return files
 
 def fill_frame(filename, draw):
@@ -119,7 +129,6 @@ def fill_frame(filename, draw):
     if isize != field_size[0] * field_size[1]:
         return False
 
-    clear_frame(draw)
     y = 0
     f = gzip.open(filename)
     for line in read_in_chunks(f, chunk_size=2000):
@@ -133,8 +142,15 @@ def clear_frame(draw):
     draw.rectangle((0, 0, out_size[0], out_size[1]), fill=(0xff, 0xff, 0xff, 0xff))
 
 def save_frame(img, filename):
+    global tm_next_frame
     #img.show()
-    img.save(filename)
+    tmp = Image.new('RGBA', out_size)
+    d = ImageDraw.Draw(tmp)
+    s = time.strftime("%a, %d %b %Y %H:%M", time.localtime(tm))
+    d.rectangle((5, out_size[1]-39, out_size[0]-10, out_size[1]-5), fill=(0x00, 0x00, 0x00, 0x80))
+    d.text((10,out_size[1]-34), s, font=fnt, fill=(0xff, 0xff, 0xff, 0xa0))
+    Image.alpha_composite(img, tmp).save(filename, 'PNG')
+    del d
 
 if __name__=='__main__':
     if tm_stop <= tm_start:
