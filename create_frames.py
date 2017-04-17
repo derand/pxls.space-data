@@ -31,18 +31,33 @@ color_map = (
 borders = [1308, 767, 1325, 785] # 9
 #borders = [1751, 24, 1821, 87]
 field_size = (2000, 2000)
-#out_size = (4096, 2304)
-out_size = (1280, 720)
+out_size = (4096, 2304)
+#out_size = (1280, 720)
 pxl_sz = 0
 pxl_diff = (0, 0)
-out_path = os.path.expanduser('~/Desktop/data/frames/')
-data_path = os.path.expanduser('~/Desktop/data/pxls_space/')
+out_path = os.path.expanduser('~/Desktop/data/frames1/')
+data_path = os.path.expanduser('~/Desktop/data/pxls_space_tmp/')
 tm_start = 0
-tm_stop = 1492041600
+#tm_stop = 1492041600
+tm_stop = 0
 tm_step = 10
 tm = tm_next_frame = tm_start
-fnt = ImageFont.truetype('Academic M54.ttf', 24)
+pixel_counter = 0
+pixel_counter_last = 0
+pixel_counter_arr = []
+dt = None
+frame_counter = 0
+s1 = s2 = s3 = ''
+users = (0, 0)
+users_next = users
+
+tmp_fontsize = out_size[1] // 30
+tmp_rect_border = tmp_fontsize // 4
+#fnt = ImageFont.truetype('Academic M54.ttf', 24)
 #fnt = ImageFont.truetype('FFF_Tusj.ttf', 24)
+#fnt = ImageFont.truetype('chintzy.ttf', 24)
+fnt = ImageFont.truetype('data-latin.ttf', tmp_fontsize)
+
 
 '''
     ffmpeg -y -framerate 60 -pattern_type glob -i "/Users/maliy/Desktop/data/frames/*.png" -c:v libx264 -pix_fmt yuv420p -crf 18 -refs 4 -partitions +parti4x4+parti8x8+partp4x4+partp8x8+partb8x8 -subq 12 -trellis 1 -coder 1 -me_range 32 -level 4.1 -profile:v high -bf 12 /Users/maliy/Desktop/out.mp4
@@ -72,12 +87,12 @@ def calc_borders(borders, field_size):
     if float(w)/float(h) > float(out_size[0])/float(out_size[1]):
         # weight
         h = int(w * float(out_size[1]) / float(out_size[0]))
-        pxl_sz = out_size[0] / w
+        pxl_sz = out_size[0] // w
     else:
         # height
         w = int(h * float(out_size[0])/float(out_size[1]))
-        pxl_sz = out_size[1] / h
-    center = (borders[2]+borders[0])/2, (borders[3]+borders[1])/2
+        pxl_sz = out_size[1] // h
+    center = (borders[2]+borders[0])//2, (borders[3]+borders[1])//2
     '''
     pxl_diff = ( -(out_size[0]%pxl_sz)/2, -(out_size[1]%pxl_sz)/2 )
     if pxl_diff[0] != 0:
@@ -99,7 +114,7 @@ def calc_borders(borders, field_size):
         borders[2] = field_size[0]
     if borders[3] > field_size[1]:
         borders[3] = field_size[1]
-    pxl_diff = ((out_size[0]-(borders[2]-borders[0])*pxl_sz)/2, (out_size[1]-(borders[3]-borders[1])*pxl_sz)/2)
+    pxl_diff = ((out_size[0]-(borders[2]-borders[0])*pxl_sz)//2, (out_size[1]-(borders[3]-borders[1])*pxl_sz)//2)
     return (borders, pxl_sz, pxl_diff)
 
 def file_time(fn):
@@ -143,14 +158,49 @@ def clear_frame(draw):
 
 def save_frame(img, filename):
     global tm_next_frame
+    global pixel_counter, pixel_counter_last, pixel_counter_arr
+    global dt, frame_counter
+    global s2, s3
+    global users
     #img.show()
+
+    pixel_diff = pixel_counter - pixel_counter_last
+    pixel_counter_arr.append(pixel_diff)
+    if len(pixel_counter_arr) > 60:
+        pixel_counter_arr.pop(0)
+    pixel_diff = float(sum(pixel_counter_arr)) / (len(pixel_counter_arr) * tm_step)
+    pixel_counter_last = pixel_counter
+
+    s1 = time.strftime("%a, %d %b %Y %H:%M", time.localtime(tm_next_frame))
+    if frame_counter % 60 == 1:
+        s2 = '%.0f pxls/s'%pixel_diff
+    if frame_counter % 60 == 1:
+        s3 = 'Users: %d'%users[0]
+
+    frame_counter += 1
+
+    sys.stdout.write('\r%s(%d) %d: %s %s %s'%(dt, tm_next_frame, frame_counter, s1, s2, s3))
+    sys.stdout.flush()
+
     tmp = Image.new('RGBA', out_size)
     d = ImageDraw.Draw(tmp)
-    s = time.strftime("%a, %d %b %Y %H:%M", time.localtime(tm))
-    d.rectangle((5, out_size[1]-39, out_size[0]-10, out_size[1]-5), fill=(0x00, 0x00, 0x00, 0x80))
-    d.text((10,out_size[1]-34), s, font=fnt, fill=(0xff, 0xff, 0xff, 0xa0))
+    d.rectangle((2*tmp_rect_border, out_size[1]-tmp_fontsize-5*tmp_rect_border, out_size[0]-2*tmp_rect_border, out_size[1]-2*tmp_rect_border), fill=(0x00, 0x00, 0x00, 0x80))
+    d.text((3*tmp_rect_border, out_size[1]-tmp_fontsize-4*tmp_rect_border), s1, font=fnt, fill=(0xff, 0xff, 0xff, 0xa0))
+    d.text((out_size[0]//4, out_size[1]-tmp_fontsize-4*tmp_rect_border), s2, font=fnt, fill=(0xff, 0xff, 0xff, 0xa0))
+    d.text((3*out_size[0]//8, out_size[1]-tmp_fontsize-4*tmp_rect_border), s3, font=fnt, fill=(0xff, 0xff, 0xff, 0xa0))
     Image.alpha_composite(img, tmp).save(filename, 'PNG')
     del d
+
+def check_users(f_users):
+    global users, users_next, tm
+    if tm > users_next[1]:
+        line = f_users.readline()
+        if line:
+            tmp = line.split(';')
+            if len(tmp) == 2:
+                users = users_next
+                users_next = (int(tmp[1]), int(tmp[0]))
+
 
 if __name__=='__main__':
     if tm_stop <= tm_start:
@@ -189,9 +239,9 @@ if __name__=='__main__':
     # read initial image
     data_frame = fill_frame(filename='%s%s.bin'%(data_path, dt), draw=draw)
     f_points = open('%s%s.txt'%(data_path, dt))
-    f_points_counter = 0
-    sys.stdout.write('%s: %d'%(dt, tm_next_frame))
-    sys.stdout.flush()
+    f_points_line_counter = 0
+    f_users = open('%s%s_users.txt'%(data_path, dt))
+    check_users(f_users)
     while True:
         while tm >= tm_next_frame:
             save_frame(img, '%s%d.png'%(out_path, tm_next_frame))
@@ -199,11 +249,10 @@ if __name__=='__main__':
             if tm_next_frame > tm_stop:
                 break
             data_frame = False
-            sys.stdout.write('\r%s: %d'%(dt, tm_next_frame))
-            sys.stdout.flush()
 
         line = f_points.readline()
-        f_points_counter += 1
+        f_points_line_counter += 1
+        pixel_counter += 1
         if line:
             tmp = line.split(';')
             if len(tmp) == 4:
@@ -214,8 +263,9 @@ if __name__=='__main__':
                 col = int(tmp[3])
                 #pixels[x,y] = color_map[col & 0x0f]
                 put_pixel(draw, x, y, col & 0x0f)
+                check_users(f_users)
             else:
-                print 'error at line %d'%c
+                print '\nError at line %d, file: %s'%(f_points_line_counter, dt)
                 break
         else:
             if len(files) == 0:
@@ -229,12 +279,13 @@ if __name__=='__main__':
                 tm_next_frame += tm_step
                 if tm_next_frame > tm_stop:
                     break
-                sys.stdout.write('\r%s: %d'%(dt, tm_next_frame))
-                sys.stdout.flush()
             data_frame = fill_frame(filename='%s%s.bin'%(data_path, dt), draw=draw)
             f_points.close()
             f_points = open('%s%s.txt'%(data_path, dt))
-            f_points_counter = 0
+            f_points_line_counter = 0
+            f_users.close()
+            f_users = open('%s%s_users.txt'%(data_path, dt))
+            check_users(f_users)
     del draw
     print
 
