@@ -4,6 +4,7 @@ import json
 import math
 import gzip
 import os, glob, struct, sys
+import argparse
 
 color_map = (
         (0xff, 0xff, 0xff, 0xff),
@@ -25,23 +26,23 @@ color_map = (
     )
 
 # 4096x2304
-#borders = [1061, 566, 1720, 1013] # chans
-#borders = [0, 0, 2000, 2000]
-#borders = [1550, 110, 1772, 362] # right active
-borders = [1308, 767, 1325, 785] # 9
-#borders = [1751, 24, 1821, 87]
-field_size = (2000, 2000)
-out_size = (4096, 2304)
+#store_rect = [1061, 566, 1720, 1013] # chans
+#store_rect = [0, 0, 2000, 2000]
+#store_rect = [1550, 110, 1772, 362] # right active
+#store_rect = [1308, 767, 1325, 785] # 9
+#store_rect = [1751, 24, 1821, 87]
+#field_size = (2000, 2000)
+#out_size = (4096, 2304)
 #out_size = (1280, 720)
 pxl_sz = 0
 pxl_diff = (0, 0)
-out_path = os.path.expanduser('~/Desktop/data/frames1/')
-data_path = os.path.expanduser('~/Desktop/data/pxls_space_tmp/')
-tm_start = 0
+#out_path = os.path.expanduser('~/Desktop/data/frames1/')
+#data_path = os.path.expanduser('~/Desktop/data/pxls_space_tmp/')
+#tm_start = 0
 #tm_stop = 1492041600
-tm_stop = 0
-tm_step = 10
-tm = tm_next_frame = tm_start
+#tm_stop = 0
+#tm_step = 10
+tm = tm_next_frame = 0
 pixel_counter = 0
 pixel_counter_last = 0
 pixel_counter_arr = []
@@ -51,13 +52,12 @@ s1 = s2 = s3 = ''
 users = (0, 0)
 users_next = users
 
-tmp_fontsize = out_size[1] // 30
-tmp_rect_border = tmp_fontsize // 4
-#fnt = ImageFont.truetype('Academic M54.ttf', 24)
-#fnt = ImageFont.truetype('FFF_Tusj.ttf', 24)
-#fnt = ImageFont.truetype('chintzy.ttf', 24)
-fnt = ImageFont.truetype('data-latin.ttf', tmp_fontsize)
+store_rect = field_size = out_size = None
+out_path = data_path = None
+tm_start = tm_stop = tm_step = 0
 
+# statistic
+stat_hide = stat_fontsize = stat_rect_padding = stat_font = None
 
 '''
     ffmpeg -y -framerate 60 -pattern_type glob -i "/Users/maliy/Desktop/data/frames/*.png" -c:v libx264 -pix_fmt yuv420p -crf 18 -refs 4 -partitions +parti4x4+parti8x8+partp4x4+partp8x8+partb8x8 -subq 12 -trellis 1 -coder 1 -me_range 32 -level 4.1 -profile:v high -bf 12 /Users/maliy/Desktop/out.mp4
@@ -71,18 +71,18 @@ def read_in_chunks(file_object, chunk_size=2000):
         yield data
 
 def put_pixel(draw, x, y, color):
-    global borders, pxl_sz, pxl_diff, color_map
-    if x >= borders[0] and x <= borders[2] and y >= borders[1] and y <= borders[3] and color < len(color_map):
-        x1, y1 = (x - borders[0]) * pxl_sz + pxl_diff[0], (y - borders[1]) * pxl_sz + pxl_diff[1]
+    global store_rect, pxl_sz, pxl_diff, color_map
+    if x >= store_rect[0] and x <= store_rect[2] and y >= store_rect[1] and y <= store_rect[3] and color < len(color_map):
+        x1, y1 = (x - store_rect[0]) * pxl_sz + pxl_diff[0], (y - store_rect[1]) * pxl_sz + pxl_diff[1]
         if pxl_sz > 1:
             draw.rectangle((x1, y1, x1+pxl_sz-1, y1+pxl_sz-1), fill=color_map[color])
         else:
             draw.point((x1, y1), fill=color_map[color])
 
-def calc_borders(borders, field_size):
+def calc_storerect(store_rect, field_size):
     global out_size
-    w = borders[2]-borders[0]
-    h = borders[3]-borders[1]
+    w = store_rect[2]-store_rect[0]
+    h = store_rect[3]-store_rect[1]
     pxl_sz = 0
     if float(w)/float(h) > float(out_size[0])/float(out_size[1]):
         # weight
@@ -92,7 +92,7 @@ def calc_borders(borders, field_size):
         # height
         w = int(h * float(out_size[0])/float(out_size[1]))
         pxl_sz = out_size[1] // h
-    center = (borders[2]+borders[0])//2, (borders[3]+borders[1])//2
+    center = (store_rect[2]+store_rect[0])//2, (store_rect[3]+store_rect[1])//2
     '''
     pxl_diff = ( -(out_size[0]%pxl_sz)/2, -(out_size[1]%pxl_sz)/2 )
     if pxl_diff[0] != 0:
@@ -100,22 +100,22 @@ def calc_borders(borders, field_size):
     if pxl_diff[1] != 0:
         h += 2
     
-    borders[0], borders[1] = center[0]-w/2, center[1]-h/2
-    borders[2], borders[3] = borders[0]+w, borders[1]+h
+    store_rect[0], store_rect[1] = center[0]-w/2, center[1]-h/2
+    store_rect[2], store_rect[3] = store_rect[0]+w, store_rect[1]+h
     '''
     tmp = (int(math.ceil(float(out_size[0])/(2*pxl_sz))), int(math.ceil(float(out_size[1])/(2*pxl_sz))))
-    borders[0], borders[1] = center[0]-tmp[0], center[1]-tmp[1]
-    borders[2], borders[3] = center[0]+tmp[0], center[1]+tmp[1]
-    if borders[0] < 0:
-        borders[0] = 0
-    if borders[1] < 0:
-        borders[1] = 0
-    if borders[2] > field_size[0]:
-        borders[2] = field_size[0]
-    if borders[3] > field_size[1]:
-        borders[3] = field_size[1]
-    pxl_diff = ((out_size[0]-(borders[2]-borders[0])*pxl_sz)//2, (out_size[1]-(borders[3]-borders[1])*pxl_sz)//2)
-    return (borders, pxl_sz, pxl_diff)
+    store_rect[0], store_rect[1] = center[0]-tmp[0], center[1]-tmp[1]
+    store_rect[2], store_rect[3] = center[0]+tmp[0], center[1]+tmp[1]
+    if store_rect[0] < 0:
+        store_rect[0] = 0
+    if store_rect[1] < 0:
+        store_rect[1] = 0
+    if store_rect[2] > field_size[0]:
+        store_rect[2] = field_size[0]
+    if store_rect[3] > field_size[1]:
+        store_rect[3] = field_size[1]
+    pxl_diff = ((out_size[0]-(store_rect[2]-store_rect[0])*pxl_sz)//2, (out_size[1]-(store_rect[3]-store_rect[1])*pxl_sz)//2)
+    return (store_rect, pxl_sz, pxl_diff)
 
 def file_time(fn):
     dt = os.path.splitext(os.path.basename(fn))[0]
@@ -162,6 +162,7 @@ def save_frame(img, filename):
     global dt, frame_counter
     global s2, s3
     global users
+    global stat_hide, stat_rect_padding, stat_fontsize, stat_font
     #img.show()
 
     pixel_diff = pixel_counter - pixel_counter_last
@@ -182,14 +183,17 @@ def save_frame(img, filename):
     sys.stdout.write('\r%s(%d) %d: %s %s %s'%(dt, tm_next_frame, frame_counter, s1, s2, s3))
     sys.stdout.flush()
 
-    tmp = Image.new('RGBA', out_size)
-    d = ImageDraw.Draw(tmp)
-    d.rectangle((2*tmp_rect_border, out_size[1]-tmp_fontsize-5*tmp_rect_border, out_size[0]-2*tmp_rect_border, out_size[1]-2*tmp_rect_border), fill=(0x00, 0x00, 0x00, 0x80))
-    d.text((3*tmp_rect_border, out_size[1]-tmp_fontsize-4*tmp_rect_border), s1, font=fnt, fill=(0xff, 0xff, 0xff, 0xa0))
-    d.text((out_size[0]//4, out_size[1]-tmp_fontsize-4*tmp_rect_border), s2, font=fnt, fill=(0xff, 0xff, 0xff, 0xa0))
-    d.text((3*out_size[0]//8, out_size[1]-tmp_fontsize-4*tmp_rect_border), s3, font=fnt, fill=(0xff, 0xff, 0xff, 0xa0))
-    Image.alpha_composite(img, tmp).save(filename, 'PNG')
-    del d
+    if stat_hide:
+        img.save(filename, 'PNG')
+    else:
+        tmp = Image.new('RGBA', out_size)
+        d = ImageDraw.Draw(tmp)
+        d.rectangle((2*stat_rect_padding, out_size[1]-stat_fontsize-5*stat_rect_padding, out_size[0]-2*stat_rect_padding, out_size[1]-2*stat_rect_padding), fill=(0x00, 0x00, 0x00, 0x80))
+        d.text((3*stat_rect_padding, out_size[1]-stat_fontsize-4*stat_rect_padding), s1, font=stat_font, fill=(0xff, 0xff, 0xff, 0xa0))
+        d.text((out_size[0]//4, out_size[1]-stat_fontsize-4*stat_rect_padding), s2, font=stat_font, fill=(0xff, 0xff, 0xff, 0xa0))
+        d.text((3*out_size[0]//8, out_size[1]-stat_fontsize-4*stat_rect_padding), s3, font=stat_font, fill=(0xff, 0xff, 0xff, 0xa0))
+        Image.alpha_composite(img, tmp).save(filename, 'PNG')
+        del d
 
 def check_users(f_users):
     global users, users_next, tm
@@ -203,6 +207,44 @@ def check_users(f_users):
 
 
 if __name__=='__main__':
+    script_path = os.path.dirname(os.path.realpath(__file__))
+    os.chdir(script_path)
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-r', '--store_rect',    type=str, default='0:0:2000:2000', help="field rectangle to store x1:y1:x2:y2 (default: 0:0:2000:2000)")
+    parser.add_argument('-f', '--field_size', type=str, default='2000:2000', help="filed size width:height (default: 2000:2000)")
+    parser.add_argument('-s', '--out_size',   type=str, default='4096:2304', help="out images size width:height (default: 4096:2304)")
+    parser.add_argument('-o', '--out_path',   type=str, default='/mnt/', help="out dir to store images (default: /mnt/)")
+    parser.add_argument('-d', '--data_path',  type=str, default='/mnt/', help="source data path (default: /mnt/)")
+    parser.add_argument('--time_start',       type=int, default=0, help="start time in unixtime format")
+    parser.add_argument('--time_stop',        type=int, default=0, help="stop time in unixtime format")
+    parser.add_argument('--time_step',        type=int, default=10, help="step in seconds between frames (default: 10)")
+    parser.add_argument('--stat_hide',        action='store_true', help="show statistic")
+    parser.add_argument('--stat_fontsize',    type=int, default=-1, help="font size for statistic")
+    parser.add_argument('--stat_fontfile',    type=str, default='data-latin.ttf', help="font file for statistic")
+    parser.add_argument('--stat_rect_padding',type=int, default=-1, help="rect padding for statistic")
+    args = parser.parse_args()
+
+    store_rect = map(int, args.store_rect.split(':'))[0:4]
+    field_size = map(int, args.field_size.split(':'))[0:2]
+    out_size = map(int, args.out_size.split(':'))[0:2]
+
+    out_path = args.out_path
+    data_path = args.data_path
+
+    tm_start = args.time_start
+    tm_stop = args.time_stop
+    tm_step = args.time_step
+    tm = tm_next_frame = tm_start
+
+    stat_hide = args.stat_hide
+    if args.stat_fontsize < 0:
+        stat_fontsize = out_size[1] // 30
+    if args.stat_rect_padding < 0:
+        stat_rect_padding = stat_fontsize // 4
+    stat_font = ImageFont.truetype('data-latin.ttf', stat_fontsize)
+
+
     if tm_stop <= tm_start:
         tm_stop = int(time.time())
 
@@ -218,8 +260,8 @@ if __name__=='__main__':
         print 'No match files'
         exit()
 
-    (borders, pxl_sz, pxl_diff) = calc_borders(borders, field_size)
-    print pxl_sz, pxl_diff, borders
+    (store_rect, pxl_sz, pxl_diff) = calc_storerect(store_rect, field_size)
+    print pxl_sz, pxl_diff, store_rect
 
 
     img = Image.new('RGBA', out_size, "black")
