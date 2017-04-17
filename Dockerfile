@@ -6,7 +6,7 @@
 FROM     hypriot/rpi-alpine-scratch
 MAINTAINER Andrey Derevyagin "2derand@gmail.com"
 
-ADD history.py requirements.txt create_frames.py /app/
+ADD history.py requirements.txt create_frames.py data-latin.ttf /app/
 
 RUN apk -U upgrade && apk -U add tzdata ca-certificates python python-dev py-pip gcc linux-headers musl-dev && update-ca-certificates zlib-dev jpeg-dev libpng-dev && \
     cp /usr/share/zoneinfo/Europe/Kiev /etc/localtime && \
