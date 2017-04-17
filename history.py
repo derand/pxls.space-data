@@ -42,6 +42,8 @@ kill_time = int(time.time()) + KILL_TIME_DIFF
 RESTART_PERIOD = int(os.environ.get('RESTART_PERIOD', 60*60)) # 1 hour
 kill_time2 = int(time.time()) + RESTART_PERIOD
 
+my_timezone = 'Europe/Kiev'
+
 def kill_by_timeout():
         global kill_time
         while kill_time > int(time.time()):
@@ -141,7 +143,7 @@ if __name__ == '__main__':
 
     from datetime import datetime
     import pytz, time
-    tm = datetime.fromtimestamp(time.time(), pytz.timezone('Europe/Kiev'))
+    tm = datetime.fromtimestamp(time.time(), pytz.timezone(my_timezone))
     dt_str = '%d%02d%02d_%02d%02d%02d'%(tm.year, tm.month, tm.day, tm.hour, tm.minute, tm.second)
     #dt_str = '%d%02d%02d_%02d%02d%02d-%d'%(tm.year, tm.month, tm.day, tm.hour, tm.minute, tm.second, int(time.time()))
 

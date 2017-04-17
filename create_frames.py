@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 from PIL import Image, ImageDraw, ImageFont
 import time, pytz, datetime
 import json
@@ -25,23 +28,8 @@ color_map = (
         (0x80, 0x00, 0x7d, 0xff),
     )
 
-# 4096x2304
-#store_rect = [1061, 566, 1720, 1013] # chans
-#store_rect = [0, 0, 2000, 2000]
-#store_rect = [1550, 110, 1772, 362] # right active
-#store_rect = [1308, 767, 1325, 785] # 9
-#store_rect = [1751, 24, 1821, 87]
-#field_size = (2000, 2000)
-#out_size = (4096, 2304)
-#out_size = (1280, 720)
 pxl_sz = 0
 pxl_diff = (0, 0)
-#out_path = os.path.expanduser('~/Desktop/data/frames1/')
-#data_path = os.path.expanduser('~/Desktop/data/pxls_space_tmp/')
-#tm_start = 0
-#tm_stop = 1492041600
-#tm_stop = 0
-#tm_step = 10
 tm = tm_next_frame = 0
 pixel_counter = 0
 pixel_counter_last = 0
@@ -59,9 +47,8 @@ tm_start = tm_stop = tm_step = 0
 # statistic
 stat_hide = stat_fontsize = stat_rect_padding = stat_font = None
 
-'''
-    ffmpeg -y -framerate 60 -pattern_type glob -i "/Users/maliy/Desktop/data/frames/*.png" -c:v libx264 -pix_fmt yuv420p -crf 18 -refs 4 -partitions +parti4x4+parti8x8+partp4x4+partp8x8+partb8x8 -subq 12 -trellis 1 -coder 1 -me_range 32 -level 4.1 -profile:v high -bf 12 /Users/maliy/Desktop/out.mp4
-'''
+my_timezone = 'Europe/Kiev'
+
 
 def read_in_chunks(file_object, chunk_size=2000):
     while True:
@@ -93,16 +80,7 @@ def calc_storerect(store_rect, field_size):
         w = int(h * float(out_size[0])/float(out_size[1]))
         pxl_sz = out_size[1] // h
     center = (store_rect[2]+store_rect[0])//2, (store_rect[3]+store_rect[1])//2
-    '''
-    pxl_diff = ( -(out_size[0]%pxl_sz)/2, -(out_size[1]%pxl_sz)/2 )
-    if pxl_diff[0] != 0:
-        w += 2
-    if pxl_diff[1] != 0:
-        h += 2
-    
-    store_rect[0], store_rect[1] = center[0]-w/2, center[1]-h/2
-    store_rect[2], store_rect[3] = store_rect[0]+w, store_rect[1]+h
-    '''
+
     tmp = (int(math.ceil(float(out_size[0])/(2*pxl_sz))), int(math.ceil(float(out_size[1])/(2*pxl_sz))))
     store_rect[0], store_rect[1] = center[0]-tmp[0], center[1]-tmp[1]
     store_rect[2], store_rect[3] = center[0]+tmp[0], center[1]+tmp[1]
@@ -118,8 +96,9 @@ def calc_storerect(store_rect, field_size):
     return (store_rect, pxl_sz, pxl_diff)
 
 def file_time(fn):
+    global my_timezone
     dt = os.path.splitext(os.path.basename(fn))[0]
-    tmp = pytz.timezone('Europe/Kiev').localize(datetime.datetime(int(dt[:4]), int(dt[4:6]), int(dt[6:8]), int(dt[9:11]), int(dt[11:13]), int(dt[13:15])))
+    tmp = pytz.timezone(my_timezone).localize(datetime.datetime(int(dt[:4]), int(dt[4:6]), int(dt[6:8]), int(dt[9:11]), int(dt[11:13]), int(dt[13:15])))
     return int(time.mktime(tmp.timetuple()))
 
 def clear_files(files, tm_start, tm_stop):
