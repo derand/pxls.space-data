@@ -37,8 +37,8 @@ pixel_counter_arr = []
 dt = None
 frame_counter = 0
 s1 = s2 = s3 = ''
-users = (0, 0)
-users_next = users
+users = None
+users_next = (0, 0)
 
 store_rect = field_size = out_size = None
 out_path = data_path = None
@@ -46,6 +46,9 @@ tm_start = tm_stop = tm_step = 0
 
 # statistic
 stat_hide = stat_fontsize = stat_rect_padding = stat_font = None
+
+data_frame = True
+frame_miss_counter = 0
 
 my_timezone = 'Europe/Kiev'
 
@@ -142,6 +145,7 @@ def save_frame(img, filename):
     global s2, s3
     global users
     global stat_hide, stat_rect_padding, stat_fontsize, stat_font
+    global data_frame, frame_miss_counter
     #img.show()
 
     pixel_diff = pixel_counter - pixel_counter_last
@@ -154,12 +158,23 @@ def save_frame(img, filename):
     s1 = time.strftime("%a, %d %b %Y %H:%M", time.localtime(tm_next_frame))
     if frame_counter % 60 == 1:
         s2 = '%.0f pxls/s'%pixel_diff
-    if frame_counter % 60 == 1:
-        s3 = 'Users: %d'%users[0]
+    if frame_counter % 60 == 1 or s3 == '':
+        if users is not None:
+            s3 = 'Users: %d'%users[0]
+        else:
+            s3 = ''
 
+    _s3 = s3
+    if frame_miss_counter > 5:
+        _s3 = '-'
+
+    if not data_frame:
+        frame_miss_counter += 1
+    else:
+        frame_miss_counter = 0
     frame_counter += 1
 
-    sys.stdout.write('\r%s(%d) %d: %s %s %s'%(dt, tm_next_frame, frame_counter, s1, s2, s3))
+    sys.stdout.write('\r%s(%d) %d: %s %s %s'%(dt, tm_next_frame, frame_counter, s1, s2, _s3))
     sys.stdout.flush()
 
     if stat_hide:
@@ -170,13 +185,13 @@ def save_frame(img, filename):
         d.rectangle((2*stat_rect_padding, out_size[1]-stat_fontsize-5*stat_rect_padding, out_size[0]-2*stat_rect_padding, out_size[1]-2*stat_rect_padding), fill=(0x00, 0x00, 0x00, 0x80))
         d.text((3*stat_rect_padding, out_size[1]-stat_fontsize-4*stat_rect_padding), s1, font=stat_font, fill=(0xff, 0xff, 0xff, 0xa0))
         d.text((out_size[0]//4, out_size[1]-stat_fontsize-4*stat_rect_padding), s2, font=stat_font, fill=(0xff, 0xff, 0xff, 0xa0))
-        d.text((3*out_size[0]//8, out_size[1]-stat_fontsize-4*stat_rect_padding), s3, font=stat_font, fill=(0xff, 0xff, 0xff, 0xa0))
+        d.text((3*out_size[0]//8, out_size[1]-stat_fontsize-4*stat_rect_padding), _s3, font=stat_font, fill=(0xff, 0xff, 0xff, 0xa0))
         Image.alpha_composite(img, tmp).save(filename, 'PNG')
         del d
 
 def check_users(f_users):
     global users, users_next, tm
-    if tm > users_next[1]:
+    if tm > users_next[1] or users is None:
         line = f_users.readline()
         if line:
             tmp = line.split(';')
@@ -261,8 +276,13 @@ if __name__=='__main__':
     data_frame = fill_frame(filename='%s%s.bin'%(data_path, dt), draw=draw)
     f_points = open('%s%s.txt'%(data_path, dt))
     f_points_line_counter = 0
-    f_users = open('%s%s_users.txt'%(data_path, dt))
-    check_users(f_users)
+    tmp_fn = '%s%s_users.txt'%(data_path, dt)
+    if os.path.exists(tmp_fn):
+        f_users = open(tmp_fn)
+        check_users(f_users)
+    else:
+        users = None
+        f_users = None
     while True:
         while tm >= tm_next_frame:
             save_frame(img, '%s%d.png'%(out_path, tm_next_frame))
@@ -284,7 +304,8 @@ if __name__=='__main__':
                 col = int(tmp[3])
                 #pixels[x,y] = color_map[col & 0x0f]
                 put_pixel(draw, x, y, col & 0x0f)
-                check_users(f_users)
+                if f_users:
+                    check_users(f_users)
             else:
                 print '\nError at line %d, file: %s'%(f_points_line_counter, dt)
                 break
@@ -304,9 +325,15 @@ if __name__=='__main__':
             f_points.close()
             f_points = open('%s%s.txt'%(data_path, dt))
             f_points_line_counter = 0
-            f_users.close()
-            f_users = open('%s%s_users.txt'%(data_path, dt))
-            check_users(f_users)
+            if f_users:
+                f_users.close()
+            tmp_fn = '%s%s_users.txt'%(data_path, dt)
+            if os.path.exists(tmp_fn):
+                f_users = open(tmp_fn)
+                check_users(f_users)
+            else:
+                users = None
+                f_users = None
     del draw
     print
 
