@@ -46,6 +46,8 @@ tm_start = tm_stop = tm_step = 0
 
 # statistic
 stat_hide = stat_fontsize = stat_rect_padding = stat_font = None
+stat_text_update = 60
+stat_acceleration = 0
 
 data_frame = True
 frame_miss_counter = 0
@@ -144,25 +146,31 @@ def save_frame(img, filename):
     global dt, frame_counter
     global s2, s3
     global users
-    global stat_hide, stat_rect_padding, stat_fontsize, stat_font
+    global stat_hide, stat_rect_padding, stat_fontsize, stat_font, stat_text_update, stat_acceleration
     global data_frame, frame_miss_counter
     #img.show()
 
     pixel_diff = pixel_counter - pixel_counter_last
     pixel_counter_arr.append(pixel_diff)
-    if len(pixel_counter_arr) > 60:
+    if len(pixel_counter_arr) > stat_text_update:
         pixel_counter_arr.pop(0)
     pixel_diff = float(sum(pixel_counter_arr)) / (len(pixel_counter_arr) * tm_step)
     pixel_counter_last = pixel_counter
 
     s1 = time.strftime("%a, %d %b %Y %H:%M", time.localtime(tm_next_frame))
-    if frame_counter % 60 == 1:
+    if frame_counter % stat_text_update == 1:
         s2 = '%.0f pxls/s'%pixel_diff
-    if frame_counter % 60 == 1 or s3 == '':
+    if frame_counter % stat_text_update == 1 or s3 == '':
         if users is not None:
             s3 = 'Users: %d'%users[0]
         else:
             s3 = ''
+
+    if stat_acceleration > 0:
+        stat_acceleration -= 1
+        sys.stdout.write('\r%s(%d) -%d: %s %s %s'%(dt, tm_next_frame, stat_acceleration, s1, s2, s3))
+        sys.stdout.flush()
+        return
 
     _s3 = s3
     if frame_miss_counter > 5:
@@ -237,6 +245,10 @@ if __name__=='__main__':
     if args.stat_rect_padding < 0:
         stat_rect_padding = stat_fontsize // 4
     stat_font = ImageFont.truetype('data-latin.ttf', stat_fontsize)
+
+    if tm_start > 0:
+        stat_acceleration = stat_text_update + 1
+        tm_start -= (stat_text_update + 1) * tm_step
 
 
     if tm_stop <= tm_start:
