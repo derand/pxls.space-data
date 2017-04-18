@@ -47,7 +47,7 @@ tm_start = tm_stop = tm_step = 0
 # statistic
 stat_hide = stat_fontsize = stat_rect_padding = stat_font = None
 stat_text_update = 60
-stat_acceleration = 0
+stat_accumulation = 0
 
 data_frame = True
 frame_miss_counter = 0
@@ -146,7 +146,7 @@ def save_frame(img, filename):
     global dt, frame_counter
     global s2, s3
     global users
-    global stat_hide, stat_rect_padding, stat_fontsize, stat_font, stat_text_update, stat_acceleration
+    global stat_hide, stat_rect_padding, stat_fontsize, stat_font, stat_text_update, stat_accumulation
     global data_frame, frame_miss_counter
     #img.show()
 
@@ -166,9 +166,9 @@ def save_frame(img, filename):
         else:
             s3 = ''
 
-    if stat_acceleration > 0:
-        stat_acceleration -= 1
-        sys.stdout.write('\r%s(%d) -%d: %s %s %s'%(dt, tm_next_frame, stat_acceleration, s1, s2, s3))
+    if stat_accumulation > 0:
+        stat_accumulation -= 1
+        sys.stdout.write('\r%s(%d) -%d: %s   %d/%d/%s   %s'%(dt, tm_next_frame, stat_accumulation, s1, pixel_counter_arr[-1]//tm_step, sum(pixel_counter_arr)//(len(pixel_counter_arr)*tm_step), s2, s3))
         sys.stdout.flush()
         return
 
@@ -182,7 +182,7 @@ def save_frame(img, filename):
         frame_miss_counter = 0
     frame_counter += 1
 
-    sys.stdout.write('\r%s(%d) %d: %s %s %s'%(dt, tm_next_frame, frame_counter, s1, s2, _s3))
+    sys.stdout.write('\r%s(%d) %d: %s   %d/%d/%s   %s'%(dt, tm_next_frame, frame_counter, s1, pixel_counter_arr[-1]//tm_step, sum(pixel_counter_arr)//(len(pixel_counter_arr)*tm_step), s2, _s3))
     sys.stdout.flush()
 
     if stat_hide:
@@ -225,6 +225,7 @@ if __name__=='__main__':
     parser.add_argument('--stat_fontsize',    type=int, default=-1, help="font size for statistic")
     parser.add_argument('--stat_fontfile',    type=str, default='data-latin.ttf', help="font file for statistic")
     parser.add_argument('--stat_rect_padding',type=int, default=-1, help="rect padding for statistic")
+    parser.add_argument('--stat_text_update', type=int, default=60, help="update text every X frames")
     args = parser.parse_args()
 
     store_rect = map(int, args.store_rect.split(':'))[0:4]
@@ -245,9 +246,10 @@ if __name__=='__main__':
     if args.stat_rect_padding < 0:
         stat_rect_padding = stat_fontsize // 4
     stat_font = ImageFont.truetype('data-latin.ttf', stat_fontsize)
+    stat_text_update = args.stat_text_update
 
     if tm_start > 0:
-        stat_acceleration = stat_text_update + 1
+        stat_accumulation = stat_text_update + 1
         tm_start -= (stat_text_update + 1) * tm_step
 
 
