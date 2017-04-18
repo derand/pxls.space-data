@@ -304,6 +304,8 @@ if __name__=='__main__':
             if tm_next_frame > tm_stop:
                 break
             data_frame = False
+        if tm_next_frame > tm_stop:
+            break
 
         line = f_points.readline()
         f_points_line_counter += 1
@@ -335,6 +337,9 @@ if __name__=='__main__':
                 tm_next_frame += tm_step
                 if tm_next_frame > tm_stop:
                     break
+                data_frame = False
+            if tm_next_frame > tm_stop:
+                break
             data_frame = fill_frame(filename='%s%s.bin'%(data_path, dt), draw=draw)
             f_points.close()
             f_points = open('%s%s.txt'%(data_path, dt))
