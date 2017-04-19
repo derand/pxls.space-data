@@ -191,9 +191,14 @@ def save_frame(img, filename):
         tmp = Image.new('RGBA', out_size)
         d = ImageDraw.Draw(tmp)
         d.rectangle((2*stat_rect_padding, out_size[1]-stat_fontsize-5*stat_rect_padding, out_size[0]-2*stat_rect_padding, out_size[1]-2*stat_rect_padding), fill=(0x00, 0x00, 0x00, 0x80))
-        d.text((3*stat_rect_padding, out_size[1]-stat_fontsize-4*stat_rect_padding), s1, font=stat_font, fill=(0xff, 0xff, 0xff, 0xa0))
-        d.text((out_size[0]//4, out_size[1]-stat_fontsize-4*stat_rect_padding), s2, font=stat_font, fill=(0xff, 0xff, 0xff, 0xa0))
-        d.text((3*out_size[0]//8, out_size[1]-stat_fontsize-4*stat_rect_padding), _s3, font=stat_font, fill=(0xff, 0xff, 0xff, 0xa0))
+        _w = 3*stat_rect_padding
+        d.text((_w, out_size[1]-stat_fontsize-4*stat_rect_padding), s1, font=stat_font, fill=(0xff, 0xff, 0xff, 0xa0))
+        tw, th = d.textsize(s1+"X"*5, stat_font)
+        _w += tw
+        d.text((_w, out_size[1]-stat_fontsize-4*stat_rect_padding), s2, font=stat_font, fill=(0xff, 0xff, 0xff, 0xa0))
+        tw, th = d.textsize("X"*14, stat_font)
+        _w += tw
+        d.text((_w, out_size[1]-stat_fontsize-4*stat_rect_padding), _s3, font=stat_font, fill=(0xff, 0xff, 0xff, 0xa0))
         Image.alpha_composite(img, tmp).save(filename, 'PNG')
         del d
 
