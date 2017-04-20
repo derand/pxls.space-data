@@ -168,7 +168,7 @@ def save_frame(img, filename):
 
     if stat_accumulation > 0:
         stat_accumulation -= 1
-        sys.stdout.write('\r%s(%d) -%d: %s   %d/%d/%s   %s'%(dt, tm_next_frame, stat_accumulation, s1, pixel_counter_arr[-1]//tm_step, sum(pixel_counter_arr)//(len(pixel_counter_arr)*tm_step), s2, s3))
+        sys.stdout.write('\r%s\r%s(%d) -%d: %s   %d/%d/%s   %s'%(''*90, dt, tm_next_frame, stat_accumulation, s1, pixel_counter_arr[-1]//tm_step, sum(pixel_counter_arr)//(len(pixel_counter_arr)*tm_step), s2, s3))
         sys.stdout.flush()
         return
 
@@ -182,7 +182,7 @@ def save_frame(img, filename):
         frame_miss_counter = 0
     frame_counter += 1
 
-    sys.stdout.write('\r%s(%d) %d: %s   %d/%d/%s   %s'%(dt, tm_next_frame, frame_counter, s1, pixel_counter_arr[-1]//tm_step, sum(pixel_counter_arr)//(len(pixel_counter_arr)*tm_step), s2, _s3))
+    sys.stdout.write('\r%s\r%s(%d) %d: %s   %d/%d/%s   %s'%(''*90, dt, tm_next_frame, frame_counter, s1, pixel_counter_arr[-1]//tm_step, sum(pixel_counter_arr)//(len(pixel_counter_arr)*tm_step), s2, _s3))
     sys.stdout.flush()
 
     if stat_hide:
@@ -220,7 +220,7 @@ if __name__=='__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-r', '--store_rect',    type=str, default='0:0:2000:2000', help="field rectangle to store x1:y1:x2:y2 (default: 0:0:2000:2000)")
     parser.add_argument('-f', '--field_size', type=str, default='2000:2000', help="filed size width:height (default: 2000:2000)")
-    parser.add_argument('-s', '--out_size',   type=str, default='4096:2304', help="out images size width:height (default: 4096:2304)")
+    parser.add_argument('-s', '--out_size',   type=str, default='4096:2160', help="out images size width:height (default: 4096:2160)")
     parser.add_argument('-o', '--out_path',   type=str, default='/mnt/', help="out dir to store images (default: /mnt/)")
     parser.add_argument('-d', '--data_path',  type=str, default='/mnt/', help="source data path (default: /mnt/)")
     parser.add_argument('--time_start',       type=int, default=0, help="start time in unixtime format")
@@ -293,7 +293,11 @@ if __name__=='__main__':
 
     # read initial image
     data_frame = fill_frame(filename='%s%s.bin'%(data_path, dt), draw=draw)
-    f_points = open('%s%s.txt'%(data_path, dt))
+    tmp_fn = '%s%s.txt'%(data_path, dt)
+    if os.path.exists(tmp_fn):
+        f_points = open('%s%s.txt'%(data_path, dt))
+    else:
+        f_points = None
     f_points_line_counter = 0
     tmp_fn = '%s%s_users.txt'%(data_path, dt)
     if os.path.exists(tmp_fn):
@@ -312,7 +316,10 @@ if __name__=='__main__':
         if tm_next_frame > tm_stop:
             break
 
-        line = f_points.readline()
+        if f_points:
+            line = f_points.readline()
+        else:
+            line = None
         f_points_line_counter += 1
         pixel_counter += 1
         if line:
@@ -346,18 +353,26 @@ if __name__=='__main__':
             if tm_next_frame > tm_stop:
                 break
             data_frame = fill_frame(filename='%s%s.bin'%(data_path, dt), draw=draw)
-            f_points.close()
-            f_points = open('%s%s.txt'%(data_path, dt))
+            if f_points:
+                f_points.close()
+                f_points = None
+            tmp_fn = '%s%s.txt'%(data_path, dt)
+            if os.path.exists(tmp_fn):
+                f_points = open('%s%s.txt'%(data_path, dt))
             f_points_line_counter = 0
             if f_users:
                 f_users.close()
+                f_users = None
             tmp_fn = '%s%s_users.txt'%(data_path, dt)
             if os.path.exists(tmp_fn):
                 f_users = open(tmp_fn)
                 check_users(f_users)
             else:
                 users = None
-                f_users = None
+    if f_points:
+        f_points.close()
+    if f_users:
+        f_users.close()
     del draw
     print
 
