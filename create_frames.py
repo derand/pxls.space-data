@@ -168,7 +168,7 @@ def save_frame(img, filename):
 
     if stat_accumulation > 0:
         stat_accumulation -= 1
-        sys.stdout.write('\r%s\r%s(%d) -%d: %s   %d/%d/%s   %s'%(''*90, dt, tm_next_frame, stat_accumulation, s1, pixel_counter_arr[-1]//tm_step, sum(pixel_counter_arr)//(len(pixel_counter_arr)*tm_step), s2, s3))
+        sys.stdout.write('\r%s\r%s(%d) -%d: %s   %d/%d/%s   %s'%(' '*90, dt, tm_next_frame, stat_accumulation, s1, pixel_counter_arr[-1]//tm_step, sum(pixel_counter_arr)//(len(pixel_counter_arr)*tm_step), s2, s3))
         sys.stdout.flush()
         return
 
@@ -182,7 +182,7 @@ def save_frame(img, filename):
         frame_miss_counter = 0
     frame_counter += 1
 
-    sys.stdout.write('\r%s\r%s(%d) %d: %s   %d/%d/%s   %s'%(''*90, dt, tm_next_frame, frame_counter, s1, pixel_counter_arr[-1]//tm_step, sum(pixel_counter_arr)//(len(pixel_counter_arr)*tm_step), s2, _s3))
+    sys.stdout.write('\r%s\r%s(%d) %d: %s   %d/%d/%s   %s'%(' '*90, dt, tm_next_frame, frame_counter, s1, pixel_counter_arr[-1]//tm_step, sum(pixel_counter_arr)//(len(pixel_counter_arr)*tm_step), s2, _s3))
     sys.stdout.flush()
 
     if stat_hide:
