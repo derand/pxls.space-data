@@ -11,7 +11,7 @@ services:
       - /mnt/pxls_space:/mnt
     environment:
       - STORE_PATH=/mnt
-      - RESTART_PERIOD=600
+#      - RESTART_PERIOD=600
     logging: &default_logging
       driver: json-file
       options:

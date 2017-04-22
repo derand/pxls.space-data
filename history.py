@@ -39,8 +39,8 @@ STORE_PATH = os.environ.get('STORE_PATH', '.')
 dt_str = None;
 KILL_TIME_DIFF = 60
 kill_time = int(time.time()) + KILL_TIME_DIFF
-RESTART_PERIOD = int(os.environ.get('RESTART_PERIOD', 60*60)) # 1 hour
-kill_time2 = int(time.time()) + RESTART_PERIOD
+RESTART_PERIOD = int(os.environ.get('RESTART_PERIOD', 0))
+kill_time2 = int(time.time()) + RESTART_PERIOD if RESTART_PERIOD > 0 else 0
 
 my_timezone = 'Europe/Kiev'
 
@@ -150,7 +150,8 @@ if __name__ == '__main__':
     url = 'http://pxls.space/boarddata'
     #pxls-agegate=1
 
-    thread.start_new_thread(kill_by_period, ())
+    if kill_time2 > 0:
+        thread.start_new_thread(kill_by_period, ())
 
     # http://pxls.space/boarddata response
     def cbBody(data):
