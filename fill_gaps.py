@@ -4,7 +4,7 @@
 import time, pytz, datetime
 import os, glob, shutil, struct
 import gzip
-from create_frames import read_in_chunks, file_time
+from create_frames import read_in_chunks, file_time, clear_files
 import argparse
 import random
 
@@ -51,8 +51,8 @@ if __name__=='__main__':
     parser.add_argument('-f', '--field_size', type=str, default='2000:2000', help="filed size width:height (default: 2000:2000)")
     parser.add_argument('-o', '--out_path',   type=str, default='./', help="out dir to store images (default: ./)")
     parser.add_argument('-d', '--data_path',  type=str, default='/mnt/', help="source data path (default: /mnt/)")
-    #parser.add_argument('--time_start',       type=int, default=0, help="start time in unixtime format")
-    #parser.add_argument('--time_stop',        type=int, default=0, help="stop time in unixtime format")
+    parser.add_argument('--time_start',       type=int, default=0, help="start time in unixtime format")
+    parser.add_argument('--time_stop',        type=int, default=0, help="stop time in unixtime format")
     args = parser.parse_args()
 
     field_size = map(int, args.field_size.split(':'))[0:2]
@@ -60,11 +60,17 @@ if __name__=='__main__':
     out_path = args.out_path
     data_path = args.data_path
 
+    tm_start = args.time_start
+    tm_stop = args.time_stop
+    if tm_stop <= tm_start:
+        tm_stop = int(time.time())
+
 
     files = []
     for file in glob.glob("%s*.bin"%data_path):
         files.append(file)
     files.sort(key=lambda el: os.path.basename(el))
+    files = clear_files(files, tm_start, tm_stop)
     for f in files:
         print f
 
@@ -139,6 +145,7 @@ if __name__=='__main__':
                         pixels[x][y] = col & 0x0f
                         #put_pixel(draw, x, y, col & 0x0f)
                     fo.write(line)
-
+        if tm > tm_stop:
+            break
     if fo:
         fo.close()
