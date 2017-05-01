@@ -49,7 +49,6 @@ if __name__=='__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-f', '--field_size', type=str, default='2000:2000', help="filed size width:height (default: 2000:2000)")
-    parser.add_argument('-o', '--out_path',   type=str, default='./', help="out dir to store images (default: ./)")
     parser.add_argument('-d', '--data_path',  type=str, default='/mnt/', help="source data path (default: /mnt/)")
     parser.add_argument('--time_start',       type=int, default=0, help="start time in unixtime format")
     parser.add_argument('--time_stop',        type=int, default=0, help="stop time in unixtime format")
@@ -57,7 +56,6 @@ if __name__=='__main__':
 
     field_size = map(int, args.field_size.split(':'))[0:2]
 
-    out_path = args.out_path
     data_path = args.data_path
 
     tm_start = args.time_start
@@ -80,32 +78,25 @@ if __name__=='__main__':
     filename = files.pop(0)
     dt = os.path.splitext(os.path.basename(filename))[0]
     data_frame = fill_frame(filename='%s%s.bin'%(data_path, dt), pixels=pixels, field_size=field_size)
-    save_frame(filename='%s%s.bin'%(out_path, dt), pixels=pixels, field_size=field_size)
-    tmp_fn = '%s_users.txt'%dt
-    if os.path.exists(data_path+tmp_fn):
-        shutil.copy(data_path+tmp_fn, out_path+tmp_fn)
     tmp_fn = '%s.txt'%dt
-    fo = open(out_path+tmp_fn, 'w')
+    fo = open(data_path+tmp_fn, 'a+')
+    fo.seek(0)
     tm = file_time(filename)
     if os.path.exists(data_path+tmp_fn):
-        #shutil.copy(data_path+tmp_fn, out_path+tmp_fn)
-        with open(data_path+tmp_fn) as fi:
-            while True:
-                line = fi.readline()
-                if not line:
-                    break
-                tmp = line.split(';')
-                if len(tmp) == 4:
-                    tm = int(tmp[0])
-                    x = int(tmp[1])
-                    y = int(tmp[2])
-                    col = int(tmp[3])
-                    pixels[x][y] = col & 0x0f
-                    #put_pixel(draw, x, y, col & 0x0f)
-                fo.write(line)
+        while True:
+            line = fo.readline()
+            if not line:
+                break
+            tmp = line.split(';')
+            if len(tmp) == 4:
+                tm = int(tmp[0])
+                x = int(tmp[1])
+                y = int(tmp[2])
+                col = int(tmp[3])
+                pixels[x][y] = col & 0x0f
 
 
-    while len(files) > 0:
+    while len(files) > 1:
         filename = files.pop(0)
         dt = os.path.splitext(os.path.basename(filename))[0]
         fill_frame(filename='%s%s.bin'%(data_path, dt), pixels=tmp_pixels, field_size=field_size)
@@ -120,31 +111,25 @@ if __name__=='__main__':
                 s = "{0};{1};{2};{3}\n".format(d[0], d[1], d[2], d[3])
                 fo.write(s)
 
-        save_frame(filename='%s%s.bin'%(out_path, dt), pixels=pixels, field_size=field_size)
-        tmp_fn = '%s_users.txt'%dt
-        if os.path.exists(data_path+tmp_fn):
-            shutil.copy(data_path+tmp_fn, out_path+tmp_fn)
         tmp_fn = '%s.txt'%dt
         if fo:
             fo.close()
-        fo = open(out_path+tmp_fn, 'w')
+        fo = open(data_path+tmp_fn, 'a+')
+        fo.seek(0)
         tm = file_time(filename)
         if os.path.exists(data_path+tmp_fn):
             #shutil.copy(data_path+tmp_fn, out_path+tmp_fn)
-            with open(data_path+tmp_fn) as fi:
-                while True:
-                    line = fi.readline()
-                    if not line:
-                        break
-                    tmp = line.split(';')
-                    if len(tmp) == 4:
-                        tm = int(tmp[0])
-                        x = int(tmp[1])
-                        y = int(tmp[2])
-                        col = int(tmp[3])
-                        pixels[x][y] = col & 0x0f
-                        #put_pixel(draw, x, y, col & 0x0f)
-                    fo.write(line)
+            while True:
+                line = fo.readline()
+                if not line:
+                    break
+                tmp = line.split(';')
+                if len(tmp) == 4:
+                    tm = int(tmp[0])
+                    x = int(tmp[1])
+                    y = int(tmp[2])
+                    col = int(tmp[3])
+                    pixels[x][y] = col & 0x0f
         if tm > tm_stop:
             break
     if fo:
