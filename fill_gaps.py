@@ -11,6 +11,8 @@ import random
 
 def fill_frame(filename, pixels, field_size):
     isize = 0
+    if os.stat(filename).st_size == 0:
+        return False
     with open(filename, 'rb') as f:
         f.seek(-4, 2)
         isize = struct.unpack('I', f.read(4))[0]
@@ -36,6 +38,8 @@ def save_frame(filename, pixels, field_size):
 
 def get_diff(pixels1, pixels2, field_size, tm1, tm2):
     diff = []
+    if tm1 > tm2:
+        tm2 = tm1+1
     for y in range(field_size[1]):
         for x in range(field_size[0]):
             if pixels1[x][y] <> pixels2[x][y]:
@@ -52,6 +56,7 @@ if __name__=='__main__':
     parser.add_argument('-d', '--data_path',  type=str, default='/mnt/', help="source data path (default: /mnt/)")
     parser.add_argument('--time_start',       type=int, default=0, help="start time in unixtime format")
     parser.add_argument('--time_stop',        type=int, default=0, help="stop time in unixtime format")
+    parser.add_argument('--clear_bin_files',  action='store_true', help="clear bin files for speed")
     args = parser.parse_args()
 
     field_size = map(int, args.field_size.split(':'))[0:2]
@@ -62,6 +67,8 @@ if __name__=='__main__':
     tm_stop = args.time_stop
     if tm_stop <= tm_start:
         tm_stop = int(time.time())
+
+    clear_bin_files = args.clear_bin_files
 
 
     files = []
@@ -101,6 +108,10 @@ if __name__=='__main__':
         dt = os.path.splitext(os.path.basename(filename))[0]
         fill_frame(filename='%s%s.bin'%(data_path, dt), pixels=tmp_pixels, field_size=field_size)
         tm2 = file_time(filename)
+
+        if clear_bin_files:
+            with open(filename, 'w') as f:
+                f.write('')
 
         diff = get_diff(pixels1=pixels, pixels2=tmp_pixels, field_size=field_size, tm1=tm, tm2=tm2)
         print len(diff), tm2-tm, filename

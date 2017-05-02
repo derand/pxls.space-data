@@ -121,6 +121,8 @@ def clear_files(files, tm_start, tm_stop):
 
 def fill_frame(filename, draw):
     global field_size
+    if os.stat(filename).st_size == 0:
+        return False
     isize = 0
     with open(filename, 'rb') as f:
         f.seek(-4, 2)
