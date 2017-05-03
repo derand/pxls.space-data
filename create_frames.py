@@ -175,7 +175,7 @@ def save_frame(img, filename):
         return
 
     _s3 = s3
-    if frame_miss_counter > 5:
+    if frame_miss_counter > 5 or (users is not None and tm > (users[1] + 10*tm_step)):
         _s3 = '-'
 
     if not data_frame:
