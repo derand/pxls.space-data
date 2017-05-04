@@ -82,8 +82,15 @@ if __name__=='__main__':
     pixels = [[0 for i in range(field_size[1])]  for j in range(field_size[0])]
     tmp_pixels = [[0 for i in range(field_size[1])]  for j in range(field_size[0])]
 
+    day_files = {}
+
     filename = files.pop(0)
     dt = os.path.splitext(os.path.basename(filename))[0]
+    day = dt.split('_')[0]
+    if day_files.has_key(day):
+        day_files[day].append(dt)
+    else:
+        day_files[day] = [dt,]
     data_frame = fill_frame(filename='%s%s.bin'%(data_path, dt), pixels=pixels, field_size=field_size)
     tmp_fn = '%s.txt'%dt
     fo = open(data_path+tmp_fn, 'a+')
@@ -106,12 +113,17 @@ if __name__=='__main__':
     while len(files) > 1:
         filename = files.pop(0)
         dt = os.path.splitext(os.path.basename(filename))[0]
+        day = dt.split('_')[0]
+        if day_files.has_key(day):
+            day_files[day].append(dt)
+        else:
+            day_files[day] = [dt,]
         fill_frame(filename='%s%s.bin'%(data_path, dt), pixels=tmp_pixels, field_size=field_size)
         tm2 = file_time(filename)
 
-        if clear_bin_files:
-            with open(filename, 'w') as f:
-                f.write('')
+        #if clear_bin_files:
+        #    with open(filename, 'w') as f:
+        #        f.write('')
 
         diff = get_diff(pixels1=pixels, pixels2=tmp_pixels, field_size=field_size, tm1=tm, tm2=tm2)
         print len(diff), tm2-tm, filename
@@ -145,3 +157,49 @@ if __name__=='__main__':
             break
     if fo:
         fo.close()
+
+
+    # merge day files
+    if clear_bin_files:
+        while len(files) > 0:
+            filename = files.pop(0)
+            dt = os.path.splitext(os.path.basename(filename))[0]
+            day = dt.split('_')[0]
+            if day_files.has_key(day):
+                day_files[day].append(dt)
+            else:
+                day_files[day] = [dt,]
+        print day_files
+
+        keys = list(day_files.keys())
+        keys.sort()
+
+        for k in keys:
+            if len(day_files[k]) > 1:
+                f_points = None
+                f_users = None
+                for i in range(1, len(day_files[k])):
+                    tmp_fn = data_path + day_files[k][i] + '.txt'
+                    if os.path.exists(tmp_fn):
+                        if f_points is None:
+                            f_points = open(data_path + day_files[k][0] + '.txt', 'ab+')
+                        f_tmp = open(tmp_fn, 'rb')
+                        shutil.copyfileobj(f_tmp, f_points, 1024*1024)
+                        f_tmp.close()
+                        os.remove(tmp_fn)
+
+                    tmp_fn = data_path + day_files[k][i] + '_users.txt'
+                    if os.path.exists(tmp_fn):
+                        if f_users is None:
+                            f_users = open(data_path + day_files[k][0] + '_users.txt', 'ab+')
+                        f_tmp = open(tmp_fn, 'rb')
+                        shutil.copyfileobj(f_tmp, f_users, 1024*1024)
+                        f_tmp.close()
+                        os.remove(tmp_fn)
+
+                    tmp_fn = data_path + day_files[k][i] + '.bin'
+                    os.remove(tmp_fn)
+                if f_points:
+                    f_points.close()
+                if f_users:
+                    f_users.close()
