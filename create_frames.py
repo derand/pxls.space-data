@@ -156,12 +156,12 @@ def save_frame(img, filename):
     pixel_counter_arr.append(pixel_diff)
     if len(pixel_counter_arr) > stat_text_update:
         pixel_counter_arr.pop(0)
-    pixel_diff = float(sum(pixel_counter_arr)) / (len(pixel_counter_arr) * tm_step)
+    pixel_diff = 60*float(sum(pixel_counter_arr)) / (len(pixel_counter_arr) * tm_step)
     pixel_counter_last = pixel_counter
 
     s1 = time.strftime("%a, %d %b %Y %H:%M", time.localtime(tm_next_frame))
     if frame_counter % stat_text_update == 1:
-        s2 = '%.0f pxls/s'%pixel_diff
+        s2 = '%.0f pxls/min'%pixel_diff
     if frame_counter % stat_text_update == 1 or s3 == '':
         if users is not None:
             s3 = 'Users: %d'%users[0]
@@ -170,7 +170,7 @@ def save_frame(img, filename):
 
     if stat_accumulation > 0:
         stat_accumulation -= 1
-        sys.stdout.write('\r%s\r%s(%d) -%d: %s   %d/%d/%s   %s'%(' '*90, dt, tm_next_frame, stat_accumulation, s1, pixel_counter_arr[-1]//tm_step, sum(pixel_counter_arr)//(len(pixel_counter_arr)*tm_step), s2, s3))
+        sys.stdout.write('\r%s\r%s(%d) -%d: %s   %d/%d/%s   %s'%(' '*90, dt, tm_next_frame, stat_accumulation, s1, 60*pixel_counter_arr[-1]//tm_step, 60*sum(pixel_counter_arr)//(len(pixel_counter_arr)*tm_step), s2, s3))
         sys.stdout.flush()
         return
 
