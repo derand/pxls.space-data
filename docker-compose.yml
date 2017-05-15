@@ -2,10 +2,10 @@ version: '2'
 
 services:
   pxls_space:
-    image: "derand/secret:pxls_space-armhf"
+    image: "derand/secret:pxlsspace-armhf"
     build: .
-    container_name: pxls_space
-    hostname: pxls_space
+    container_name: pxlsspace
+    hostname: pxlsspace
     restart: always
     volumes:
       - /mnt/pxls_space:/mnt

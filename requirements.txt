@@ -1,4 +1,5 @@
 pytz==2017.2
+pyOpenSSL
 Twisted==17.1.0
 autobahn==0.18.1
 Pillow==4.1.0
